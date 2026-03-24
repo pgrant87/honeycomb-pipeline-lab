@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Theme mockup: Honeycomb / product UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f3ef;
+      --bg-subtle: #ebe8e2;
+      --surface: #ffffff;
+      --surface-2: #faf8f5;
+      --border: #e0dcd4;
+      --text: #1c1917;
+      --text-muted: #57534e;
+      --accent: #d97706;
+      --accent-soft: rgba(217, 119, 6, 0.12);
+      --accent-2: #b45309;
+      --success: #059669;
+      --warn: #ca8a04;
+      --danger: #dc2626;
+      --shadow: 0 1px 3px rgba(28, 25, 23, 0.06), 0 4px 14px rgba(28, 25, 23, 0.04);
+      --radius: 12px;
+      --font-ui: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .mock-banner {
+      background: linear-gradient(90deg, var(--accent-soft), transparent);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .header {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 1.75rem 1.5rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      box-shadow: var(--shadow);
+    }
+    .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .header-right { margin-left: auto; display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text-muted); }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem 2rem; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      box-shadow: var(--shadow);
+    }
+    .stat-val { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
+    .stat-val.g { color: var(--success); }
+    .stat-val.y { color: var(--warn); }
+    .stat-val.r { color: var(--danger); }
+    .stat-lab { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-top: 0.25rem; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      min-height: 320px;
+    }
+    @media (max-width: 800px) { .row { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .card-h {
+      padding: 0.85rem 1.15rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-h i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .card-h.green i { background: var(--success); }
+    .card-b { padding: 1.15rem; }
+    .meme-zone {
+      min-height: 180px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      background: var(--surface-2);
+    }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .btn {
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      cursor: default;
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent-2); color: #fff; }
+    .feed {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .refinery {
+      margin-top: 1.25rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .refinery .card-h i { background: var(--warn); }
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .footer a { color: var(--accent-2); font-weight: 600; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">THEME MOCKUP ONLY — not wired to the app. Your live UI is unchanged at <code>/</code>.</div>
+
+  <header class="header">
+    <div class="logo">Honeycomb Support <span>Meme Lab</span></div>
+    <div class="pill"><span class="dot"></span> Traces · Metrics · Logs</div>
+    <div class="header-right">
+      <span>Container status</span>
+      <strong style="color:var(--success)">●</strong> Collector
+      <strong style="color:var(--success)">●</strong> Refinery
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat"><div class="stat-val">12</div><div class="stat-lab">Memes generated</div></div>
+      <div class="stat"><div class="stat-val g">48</div><div class="stat-lab">Spans created</div></div>
+      <div class="stat"><div class="stat-val y">24</div><div class="stat-lab">Metric points</div></div>
+      <div class="stat"><div class="stat-val r">2</div><div class="stat-lab">Errors</div></div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <div class="card-h"><i></i> Meme output</div>
+        <div class="card-b">
+          <div class="meme-zone">Placeholder meme area — warm paper, soft shadows</div>
+          <div class="btn-row">
+            <button type="button" class="btn primary">Generate meme</button>
+            <button type="button" class="btn">Random</button>
+            <button type="button" class="btn">Wholesome</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h green"><i></i> Telemetry feed</div>
+        <div class="card-b">
+          <div class="feed">
+            14:32:01 <span style="color:var(--accent)">TRACE</span> Span started: generate-meme<br />
+            14:32:01 <span style="color:var(--success)">METRIC</span> memes.generated +1<br />
+            14:32:02 <span style="color:var(--warn)">LOG</span> Meme generated successfully
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="refinery">
+      <div class="card-h"><i></i> Honeycomb Refinery — pass-through</div>
+      <div class="card-b" style="font-size:0.85rem;color:var(--text-muted)">Sampling rules panel would sit here with the same rounded, airy card treatment.</div>
+    </div>
+
+    <footer class="footer">
+      App → OTel SDK → Collector → Refinery → <a href="#">Honeycomb</a>
+    </footer>
+  </div>
+</body>
+</html>

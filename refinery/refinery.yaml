@@ -1,0 +1,25 @@
+# Honeycomb Refinery config — receives OTLP from collector, forwards to Honeycomb
+General:
+  ConfigurationVersion: 2
+  MinRefineryVersion: v2.0
+  ConfigReloadInterval: 15s
+
+Network:
+  ListenAddr: "0.0.0.0:8080"
+  PeerListenAddr: "0.0.0.0:8081"
+
+GRPCServerParameters:
+  Enabled: true
+  ListenAddr: "0.0.0.0:4317"
+
+RefineryTelemetry:
+  AddRuleReasonToTrace: true
+  AddSpanCountToRoot: true
+  AddHostMetadataToTrace: true
+
+Logger:
+  Type: stdout
+  Level: warn
+
+OTelMetrics:
+  Enabled: false

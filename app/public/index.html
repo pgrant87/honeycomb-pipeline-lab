@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honeycomb Pipeline Lab</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f3ef;
+      --surface: #ffffff;
+      --surface-2: #faf8f5;
+      --border: #e0dcd4;
+      --text: #1c1917;
+      --text-dim: #57534e;
+      --accent: #d97706;
+      --accent-2: #b45309;
+      --accent-glow: rgba(217, 119, 6, 0.12);
+      --accent-soft: rgba(217, 119, 6, 0.12);
+      --green: #059669;
+      --yellow: #ca8a04;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --pink: #db2777;
+      --stat-sky: #0369a1;
+      --stat-sky-soft: rgba(3, 105, 161, 0.12);
+      --stat-green-soft: rgba(5, 150, 105, 0.12);
+      --stat-violet: #6d28d9;
+      --stat-violet-soft: rgba(109, 40, 217, 0.12);
+      --stat-yellow-soft: rgba(202, 138, 4, 0.14);
+      --stat-red-soft: rgba(220, 38, 38, 0.1);
+      --shadow: 0 1px 3px rgba(28, 25, 23, 0.06), 0 4px 14px rgba(28, 25, 23, 0.04);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-ui: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-display: 'DM Sans', system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* ── Subtle warm wash (replaces dark grid) ──────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 120% 70% at 50% -25%, rgba(217, 119, 6, 0.07), transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .header {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .header-telemetry-toggles {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .header-toggle-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .header-toggle-item .toggle-switch {
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .header-toggle-item .toggle-switch::after {
+      width: 14px;
+      height: 14px;
+      top: 1px;
+      left: 1px;
+    }
+
+    .header-toggle-item .toggle-switch.on::after {
+      transform: translateX(14px);
+    }
+
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-status .status-text {
+      font-size: 0.65rem;
+    }
+
+    .header-status.disconnected .pulse-dot { background: var(--red); }
+    .header-status.disconnected .status-text { color: var(--red); }
+
+    .status-label {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-right: 0.5rem;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.35); }
+      50% { box-shadow: 0 0 0 6px rgba(5, 150, 105, 0); }
+    }
+
+    .status-text {
+      font-size: 0.7rem;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .main-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      height: 650px;
+      min-height: 650px;
+      overflow: hidden;
+    }
+
+    @media (max-width: 800px) {
+      .container { grid-template-columns: 1fr; }
+      .main-row { grid-template-columns: 1fr; }
+    }
+
+    /* ── Cards ────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      padding: 0.85rem 1.15rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+    }
+
+    .card-header .indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .card-body { padding: 1.2rem; }
+
+    .card-meme .card-body {
+      padding-bottom: 2rem;
+    }
+
+    /* ── Meme output ─────────────────────────────────────────── */
+    .meme-display {
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+      overflow: visible;
+    }
+
+    .meme-display.empty {
+      border: 2px dashed var(--border);
+      background: var(--surface-2);
+    }
+
+    .meme-display.empty::after {
+      content: 'Click a button below to generate a meme';
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .meme-emoji {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      animation: memeIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes memeIn {
+      from { transform: scale(0) rotate(-20deg); opacity: 0; }
+      to { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .meme-template-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+    }
+
+    .meme-text {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text);
+      max-width: 400px;
+    }
+
+    .meme-text.top { margin-bottom: 0.5rem; font-weight: 600; }
+    .meme-text.bottom { color: var(--text-dim); font-style: italic; }
+
+    .meme-id {
+      margin-top: 1rem;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .meme-duration {
+      font-size: 0.65rem;
+      color: var(--yellow);
+      margin-top: 0.3rem;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.6rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      border-color: var(--accent-2);
+      background: var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn:active { transform: translateY(0); }
+
+    .btn.primary {
+      grid-column: 1 / -1;
+      border-color: var(--accent-2);
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.85rem;
+      padding: 0.85rem;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-2);
+      filter: brightness(1.02);
+    }
+
+    .btn.chaos {
+      border-color: var(--red);
+      color: var(--red);
+      background: rgba(220, 38, 38, 0.06);
+    }
+
+    .btn.chaos:hover {
+      background: rgba(220, 38, 38, 0.12);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* ── Rating ───────────────────────────────────────────────── */
+    .rating-bar {
+      display: flex;
+      min-height: 40px;
+      gap: 0.4rem;
+      margin-top: 0.8rem;
+      justify-content: center;
+    }
+
+    .rate-btn {
+      font-size: 1.4rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s;
+      filter: grayscale(0.6);
+    }
+
+    .rate-btn:hover {
+      transform: scale(1.3);
+      filter: grayscale(0);
+    }
+
+    /* ── Telemetry log ───────────────────────────────────────── */
+    .card-telemetry {
+      display: flex;
+      flex-direction: column;
+      min-height: 0; /* allow grid to size row from meme card; this card stretches to match */
+    }
+
+    .card-telemetry .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: 1.2rem;
+    }
+
+    .log-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      font-family: var(--font-mono);
+    }
+
+    .log-entry {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.68rem;
+      line-height: 1.55;
+      animation: logIn 0.2s ease;
+    }
+
+    @keyframes logIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-time { color: var(--text-dim); }
+    .log-type {
+      font-weight: 600;
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+    }
+    /* Match stat row: Traces (green), Spans (sky), Metrics points (yellow), Log lines (violet), Errors (red) */
+    .log-type.trace { color: var(--green); background: var(--stat-green-soft); }
+    .log-type.metric { color: var(--yellow); background: var(--stat-yellow-soft); }
+    .log-type.log { color: var(--stat-violet); background: var(--stat-violet-soft); }
+    .log-type.error { color: var(--red); background: var(--stat-red-soft); }
+
+    .log-message { color: var(--text); margin-left: 0.3rem; }
+
+    /* ── Stats bar ───────────────────────────────────────────── */
+    .stats-bar {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 1100px) {
+      .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 800px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-value.cyan { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.yellow { color: var(--yellow); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.sky { color: var(--stat-sky); }
+    .stat-value.violet { color: var(--stat-violet); }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 1.5rem 2rem;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      border-top: 1px solid var(--border);
+    }
+
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    .footer-pipeline {
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+    }
+
+    .footer-pipeline .arrow { color: var(--accent); }
+
+    /* ── Refinery panel ───────────────────────────────────────────── */
+    .refinery-card {
+      grid-column: 1 / -1;
+    }
+
+    .refinery-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-switch.on {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch.on::after {
+      transform: translateX(20px);
+      background: var(--accent);
+    }
+
+    .refinery-rules {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    .refinery-rules.visible {
+      display: block;
+    }
+
+    .refinery-rules textarea {
+      width: 100%;
+      min-height: 180px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.8rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      resize: vertical;
+    }
+
+    .refinery-rules textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .refinery-save {
+      margin-top: 0.6rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Honeycomb <span>Pipeline Lab</span></div>
+    <div class="header-telemetry-toggles" title="Send to Honeycomb via collector">
+      <span class="header-toggle-item">
+        <span>Traces</span>
+        <div class="toggle-switch on" id="toggle-traces" onclick="toggleTelemetrySignal('traces')" title="Export traces"></div>
+      </span>
+      <span class="header-toggle-item">
+        <span>Metrics</span>
+        <div class="toggle-switch on" id="toggle-metrics" onclick="toggleTelemetrySignal('metrics')" title="Export metrics"></div>
+      </span>
+      <span class="header-toggle-item">
+        <span>Logs</span>
+        <div class="toggle-switch on" id="toggle-logs" onclick="toggleTelemetrySignal('logs')" title="Export logs"></div>
+      </span>
+    </div>
+    <div class="header-right">
+      <span class="status-label">Container Status:</span>
+      <div class="header-status" id="app-status">
+        <div class="pulse-dot"></div>
+        <span class="status-text">Web app</span>
+      </div>
+      <div class="header-status" id="collector-status">
+        <div class="pulse-dot"></div>
+        <span class="status-text">Collector</span>
+      </div>
+      <div class="header-status" id="refinery-header-status">
+        <div class="pulse-dot"></div>
+        <span class="status-text">Refinery</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-value cyan" id="stat-memes">0</div>
+        <div class="stat-label">Memes Generated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value green" id="stat-trace-roots">0</div>
+        <div class="stat-label">Traces</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value sky" id="stat-spans">0</div>
+        <div class="stat-label">Spans</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value yellow" id="stat-metrics">0</div>
+        <div class="stat-label">Metrics points</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value violet" id="stat-logs">0</div>
+        <div class="stat-label">Log lines</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value red" id="stat-errors">0</div>
+        <div class="stat-label">Errors</div>
+      </div>
+    </div>
+
+    <!-- Meme + Telemetry row (side by side) -->
+    <div class="main-row">
+      <!-- Meme output card -->
+      <div class="card card-meme">
+        <div class="card-header">
+          <span class="indicator" style="background:var(--accent)"></span>
+          Meme Output
+        </div>
+        <div class="card-body">
+          <div class="meme-display empty" id="meme-display"></div>
+          <div class="rating-bar" id="rating-bar" style="visibility:hidden; min-height:40px">
+            <button class="rate-btn" onclick="rateMeme('fire')" title="Fire">🔥</button>
+            <button class="rate-btn" onclick="rateMeme('love')" title="Love it">😍</button>
+            <button class="rate-btn" onclick="rateMeme('laugh')" title="Hilarious">😂</button>
+            <button class="rate-btn" onclick="rateMeme('meh')" title="Meh">😐</button>
+            <button class="rate-btn" onclick="rateMeme('trash')" title="Trash">🗑️</button>
+          </div>
+          <div class="btn-grid">
+            <button class="btn primary" onclick="generateMeme()">
+              ⚡ Generate Meme
+            </button>
+            <button class="btn" onclick="generateMeme('random')">🎲 Random</button>
+            <button class="btn" onclick="generateMeme('wholesome')">✨ Wholesome</button>
+            <button class="btn chaos" onclick="triggerChaos()">💀 Chaos Mode</button>
+            <button class="btn" onclick="sendHeartbeat()">💓 Heartbeat</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Telemetry log card -->
+      <div class="card card-telemetry">
+        <div class="card-header">
+          <span class="indicator" style="background:var(--stat-sky)"></span>
+          Telemetry Feed
+          <span style="margin-left:auto; font-size:0.6rem; color:var(--text-dim)" id="log-count">0 events</span>
+        </div>
+        <div class="card-body">
+          <div class="log-scroll" id="log-scroll"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refinery card -->
+    <div class="card refinery-card">
+      <div class="card-header">
+        <span class="indicator" style="background:var(--orange)"></span>
+        Honeycomb Refinery
+        <span style="margin-left:auto; font-size:0.6rem; color:var(--text-dim)" id="refinery-status">Pass-through</span>
+      </div>
+      <div class="card-body">
+        <div class="refinery-toggle">
+          <div class="toggle-switch" id="refinery-toggle" onclick="toggleRefinery()" title="Enable custom sampling rules"></div>
+          <span style="font-size:0.8rem">Custom sampling rules</span>
+        </div>
+        <div class="refinery-rules" id="refinery-rules">
+          <textarea id="refinery-rules-editor" placeholder="RulesVersion: 2&#10;Samplers:&#10;  __default__:&#10;    DeterministicSampler:&#10;      SampleRate: 1"></textarea>
+          <button class="btn refinery-save" onclick="saveRefineryRules()">Save rules</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-pipeline">
+      <span>🎨 App</span>
+      <span class="arrow">→</span>
+      <span>📡 OTel SDK</span>
+      <span class="arrow">→</span>
+      <span>🔄 Collector</span>
+      <span class="arrow">→</span>
+      <span id="refinery-pipeline">⚗️ Refinery</span>
+      <span class="arrow">→</span>
+      <span>🍯 <a href="https://ui.honeycomb.io" target="_blank">Honeycomb</a></span>
+    </div>
+    <div style="margin-top:0.4rem">
+      Instrumented with OpenTelemetry · Traces, Metrics & Logs
+    </div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────
+    let stats = { memes: 0, traceRoots: 0, spans: 0, metrics: 0, logs: 0, errors: 0 };
+    let logCount = 0;
+    let currentMemeId = null;
+
+    // ── Log helper ────────────────────────────────────────────
+    function addLog(type, message) {
+      logCount++;
+      if (type === 'log') stats.logs++;
+      const scroll = document.getElementById('log-scroll');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      entry.innerHTML = `<span class="log-time">${time}</span> <span class="log-type ${type}">${type}</span> <span class="log-message">${message}</span>`;
+      scroll.prepend(entry);
+
+      // Keep max 100 entries
+      while (scroll.children.length > 100) scroll.removeChild(scroll.lastChild);
+      document.getElementById('log-count').textContent = `${logCount} events`;
+      updateStats();
+    }
+
+    function updateStats() {
+      document.getElementById('stat-memes').textContent = stats.memes;
+      document.getElementById('stat-trace-roots').textContent = stats.traceRoots;
+      document.getElementById('stat-spans').textContent = stats.spans;
+      document.getElementById('stat-metrics').textContent = stats.metrics;
+      document.getElementById('stat-logs').textContent = stats.logs;
+      document.getElementById('stat-errors').textContent = stats.errors;
+    }
+
+    // ── Generate meme ─────────────────────────────────────────
+    async function generateMeme(mode = 'random') {
+      addLog('trace', `Span started: generate-meme (mode=${mode})`);
+      stats.traceRoots += 1;
+      stats.spans += 4; // parent + 3 child spans
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Generation failed');
+
+        const meme = data.meme;
+        currentMemeId = meme.id;
+
+        // Update display
+        const display = document.getElementById('meme-display');
+        display.className = 'meme-display';
+        display.innerHTML = `
+          <div class="meme-emoji">${meme.template.emoji}</div>
+          <div class="meme-template-name">${meme.template.name}</div>
+          <div class="meme-text top">${meme.topText}</div>
+          <div class="meme-text bottom">${meme.bottomText}</div>
+          <div class="meme-id">ID: ${meme.id}</div>
+          <div class="meme-duration">Generated in ${data.durationMs}ms</div>
+        `;
+        document.getElementById('rating-bar').style.visibility = 'visible';
+
+        stats.memes++;
+        stats.metrics += 2; // counter + histogram
+        addLog('trace', `Span ended: generate-meme → ${meme.template.name}`);
+        addLog('metric', `memes.generated +1 (template=${meme.template.id})`);
+        addLog('metric', `memes.generation.duration ${data.durationMs}ms`);
+        addLog('log', `Meme ${meme.id.slice(0, 8)}… generated successfully`);
+
+      } catch (err) {
+        stats.errors++;
+        addLog('error', `Generation failed: ${err.message}`);
+      }
+    }
+
+    // ── Rate meme ─────────────────────────────────────────────
+    async function rateMeme(rating) {
+      if (!currentMemeId) return;
+
+      stats.traceRoots += 1;
+      stats.spans += 1;
+      stats.metrics++;
+      addLog('trace', `Span: rate-meme (rating=${rating})`);
+      addLog('metric', `ui.button.clicks +1 (type=rate_${rating})`);
+      addLog('log', `Meme ${currentMemeId.slice(0, 8)}… rated ${rating}`);
+
+      await fetch('/api/rate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memeId: currentMemeId, rating }),
+      });
+    }
+
+    // ── Chaos mode ────────────────────────────────────────────
+    async function triggerChaos() {
+      stats.traceRoots += 1;
+      stats.spans += 1;
+      addLog('trace', 'Span started: chaos-endpoint ⚠️');
+
+      try {
+        const res = await fetch('/api/chaos', { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) {
+          stats.errors++;
+          addLog('error', `Chaos triggered: ${data.chaosType} (${res.status})`);
+        } else {
+          addLog('log', `Chaos survived! Type: ${data.chaosType}`);
+          stats.metrics++;
+        }
+      } catch (err) {
+        stats.errors++;
+        addLog('error', `Chaos request failed: ${err.message}`);
+      }
+    }
+
+    // ── Heartbeat ─────────────────────────────────────────────
+    async function sendHeartbeat() {
+      stats.metrics++;
+      addLog('metric', 'users.active +1');
+      addLog('log', 'Heartbeat sent');
+
+      await fetch('/api/heartbeat', { method: 'POST' });
+    }
+
+    // ── Refinery ──────────────────────────────────────────────
+    async function loadRefineryState() {
+      try {
+        const res = await fetch('/api/refinery');
+        const { enabled, rules } = await res.json();
+        document.getElementById('refinery-toggle').classList.toggle('on', enabled);
+        document.getElementById('refinery-rules-editor').value = rules || '';
+        document.getElementById('refinery-rules').classList.toggle('visible', enabled);
+        document.getElementById('refinery-status').textContent = enabled ? 'Custom rules' : 'Pass-through';
+        document.getElementById('refinery-pipeline').style.opacity = enabled ? '1' : '0.5';
+      } catch (e) {
+        document.getElementById('refinery-status').textContent = 'Unavailable';
+      }
+    }
+
+    async function toggleRefinery() {
+      const el = document.getElementById('refinery-toggle');
+      const enabled = !el.classList.contains('on');
+      try {
+        const res = await fetch('/api/refinery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled }),
+        });
+        const data = await res.json();
+        el.classList.toggle('on', data.enabled);
+        document.getElementById('refinery-rules').classList.toggle('visible', data.enabled);
+        document.getElementById('refinery-status').textContent = data.enabled ? 'Custom rules' : 'Pass-through';
+        document.getElementById('refinery-pipeline').style.opacity = data.enabled ? '1' : '0.5';
+        addLog('log', `Refinery ${data.enabled ? 'enabled' : 'disabled'}`);
+      } catch (e) {
+        addLog('error', `Refinery toggle failed: ${e.message}`);
+      }
+    }
+
+    async function saveRefineryRules() {
+      const rules = document.getElementById('refinery-rules-editor').value.trim();
+      try {
+        await fetch('/api/refinery/rules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules }),
+        });
+        addLog('log', 'Refinery rules saved');
+      } catch (e) {
+        addLog('error', `Save rules failed: ${e.message}`);
+      }
+    }
+
+    // ── Telemetry export toggles (server → collector → Honeycomb) ──
+    async function loadTelemetryToggles() {
+      try {
+        const res = await fetch('/api/telemetry/toggles');
+        const t = await res.json();
+        document.getElementById('toggle-traces').classList.toggle('on', t.traces);
+        document.getElementById('toggle-metrics').classList.toggle('on', t.metrics);
+        document.getElementById('toggle-logs').classList.toggle('on', t.logs);
+      } catch (_e) {}
+    }
+
+    async function toggleTelemetrySignal(key) {
+      const id = `toggle-${key}`;
+      const el = document.getElementById(id);
+      const next = !el.classList.contains('on');
+      try {
+        const res = await fetch('/api/telemetry/toggles', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: next }),
+        });
+        const t = await res.json();
+        document.getElementById('toggle-traces').classList.toggle('on', t.traces);
+        document.getElementById('toggle-metrics').classList.toggle('on', t.metrics);
+        document.getElementById('toggle-logs').classList.toggle('on', t.logs);
+        addLog('log', `Export to Honeycomb: traces=${t.traces} metrics=${t.metrics} logs=${t.logs}`);
+      } catch (e) {
+        addLog('error', `Telemetry toggle failed: ${e.message}`);
+      }
+    }
+
+    // ── Health polling ────────────────────────────────────────
+    function setAllContainerStatusDisconnected() {
+      ['app-status', 'collector-status', 'refinery-header-status'].forEach((id) => {
+        document.getElementById(id)?.classList.add('disconnected');
+      });
+    }
+
+    async function updateHealthStatus() {
+      try {
+        const res = await fetch('/api/health');
+        if (!res.ok) throw new Error('health not ok');
+        const { app, collector, refinery } = await res.json();
+        const appEl = document.getElementById('app-status');
+        const collectorEl = document.getElementById('collector-status');
+        const refineryEl = document.getElementById('refinery-header-status');
+        appEl.classList.toggle('disconnected', !app);
+        collectorEl.classList.toggle('disconnected', !collector);
+        refineryEl.classList.toggle('disconnected', !refinery);
+      } catch (_e) {
+        setAllContainerStatusDisconnected();
+      }
+    }
+
+    setInterval(updateHealthStatus, 5 * 60 * 1000); // every 5 minutes
+    updateHealthStatus();
+
+    // ── Init ──────────────────────────────────────────────────
+    addLog('log', 'Honeycomb Pipeline Lab initialised');
+    addLog('trace', 'SDK bootstrapped: traces → collector:4318');
+    addLog('metric', 'Metric reader: flush interval 60s');
+    addLog('log', 'Pipeline: App → OTel SDK → Collector → Refinery → Honeycomb');
+    // Match stat cards to the boot trace / metric lines (addLog only counts type "log" toward stats.logs)
+    stats.traceRoots += 1;
+    stats.metrics += 1;
+    updateStats();
+    loadTelemetryToggles();
+    loadRefineryState();
+  </script>
+</body>
+</html>

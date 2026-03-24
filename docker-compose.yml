@@ -1,0 +1,50 @@
+services:
+  # ── OTel Collector ─────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    environment:
+      - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
+      - HONEYCOMB_METRICS_DATASET=${HONEYCOMB_METRICS_DATASET:-meme-generator-metrics}
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "13133:13133" # Health check extension
+    depends_on:
+      - refinery
+
+  # ── Honeycomb Refinery (sampling proxy) ────────────────────
+  refinery:
+    image: honeycombio/refinery:3.1.1
+    container_name: refinery
+    command: ["-c", "/etc/refinery/refinery.yaml", "-r", "/etc/refinery/rules.yaml"]
+    volumes:
+      - ./refinery/refinery.yaml:/etc/refinery/refinery.yaml:ro
+      - ./refinery/rules.yaml:/etc/refinery/rules.yaml
+    environment:
+      - REFINERY_HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
+    ports:
+      - "8080:8080"   # HTTP API (internal OTLP 4317 not exposed to host)
+
+  # ── Meme Generator App ─────────────────────────────────────
+  meme-generator:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: meme-generator
+    volumes:
+      - ./app/public:/app/public:ro
+      - ./refinery:/app/refinery
+    environment:
+      - PORT=3000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=meme-generator
+      - DEPLOY_ENV=demo
+    ports:
+      - "3000:3000"
+    depends_on:
+      - otel-collector
+    restart: unless-stopped

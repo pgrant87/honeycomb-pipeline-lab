@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Theme mockup: NASA / mission control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #070b12;
+      --bg-panel: #0c1220;
+      --border: #1e2a3d;
+      --border-bright: #2a3f5c;
+      --text: #e8edf4;
+      --text-dim: #8b9cb3;
+      --accent: #ffffff;
+      --alert: #e11d48;
+      --ok: #22c55e;
+      --caution: #f59e0b;
+      --info: #38bdf8;
+      --font-ui: 'Inter', system-ui, sans-serif;
+      --font-mono: 'Share Tech Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.08), transparent),
+        linear-gradient(180deg, transparent 0%, rgba(7, 11, 18, 0.9) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .mock-banner {
+      position: relative;
+      z-index: 1;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 1.25rem;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+    .header {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+    }
+    .mission-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--alert);
+      border: 1px solid var(--alert);
+      padding: 0.25rem 0.6rem;
+    }
+    .logo {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .logo small {
+      display: block;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+    .telemetry-strip {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      border: 1px solid var(--border-bright);
+      padding: 0.4rem 0.75rem;
+    }
+    .telemetry-strip strong { color: var(--text); font-weight: 600; }
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+    .header-right .ok { color: var(--ok); }
+    .container { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 1.25rem 1.25rem 2rem; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 0.9rem 1rem;
+      font-family: var(--font-mono);
+    }
+    .stat-val { font-size: 1.6rem; font-weight: 400; color: var(--info); }
+    .stat-val.g { color: var(--ok); }
+    .stat-val.y { color: var(--caution); }
+    .stat-val.r { color: var(--alert); }
+    .stat-lab { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-top: 0.35rem; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      min-height: 300px;
+    }
+    @media (max-width: 800px) { .row { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .card-h {
+      padding: 0.55rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-h::before {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 5px solid var(--info);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+    .card-h.alt::before { border-left-color: var(--ok); }
+    .card-b { padding: 1rem; }
+    .meme-zone {
+      min-height: 160px;
+      border: 1px dashed var(--border-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.85rem; }
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.5rem 0.85rem;
+      border: 1px solid var(--border-bright);
+      background: transparent;
+      color: var(--text);
+      cursor: default;
+    }
+    .btn.primary {
+      background: var(--alert);
+      border-color: var(--alert);
+      color: #fff;
+    }
+    .feed {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+    .refinery {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .refinery .card-h::before { border-left-color: var(--caution); }
+    .footer {
+      margin-top: 1.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+    .footer a { color: var(--info); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">THEME MOCKUP ONLY — not wired to the app. Your live UI is unchanged at <code>/</code>.</div>
+
+  <header class="header">
+    <span class="mission-badge">Flight</span>
+    <div class="logo">
+      Meme Lab
+      <small>Observability telemetry — demo</small>
+    </div>
+    <div class="telemetry-strip">
+      <span><strong>T</strong> traces</span>
+      <span><strong>M</strong> metrics</span>
+      <span><strong>L</strong> logs</span>
+    </div>
+    <div class="header-right">
+      <span>Container</span>
+      <span class="ok">COLLECTOR</span>
+      <span class="ok">REFINERY</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat"><div class="stat-val">12</div><div class="stat-lab">Memes</div></div>
+      <div class="stat"><div class="stat-val g">48</div><div class="stat-lab">Spans</div></div>
+      <div class="stat"><div class="stat-val y">24</div><div class="stat-lab">Metrics</div></div>
+      <div class="stat"><div class="stat-val r">2</div><div class="stat-lab">Errors</div></div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <div class="card-h">Meme output</div>
+        <div class="card-b">
+          <div class="meme-zone">TELEMETRY DISPLAY — awaiting downlink</div>
+          <div class="btn-row">
+            <button type="button" class="btn primary">Generate</button>
+            <button type="button" class="btn">Random</button>
+            <button type="button" class="btn">Wholesome</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h alt">Telemetry feed</div>
+        <div class="card-b">
+          <div class="feed">
+            T+00:00:01.042 <span style="color:var(--info)">TRACE</span> generate-meme START<br />
+            T+00:00:01.089 <span style="color:var(--ok)">METRIC</span> memes.generated delta=1<br />
+            T+00:00:01.090 <span style="color:var(--caution)">LOG</span> INFO generation OK
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="refinery">
+      <div class="card-h">Refinery — sampling rules</div>
+      <div class="card-b" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim)">
+        Rules YAML / toggles in a flat, high-contrast panel — mono for data, sans for chrome only in header.
+      </div>
+    </div>
+
+    <footer class="footer">
+      APP → OTEL SDK → COLLECTOR → REFINERY → <a href="#">HONEYCOMB</a>
+    </footer>
+  </div>
+</body>
+</html>
