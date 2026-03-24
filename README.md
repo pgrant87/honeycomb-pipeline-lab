@@ -4,18 +4,7 @@ A fully-instrumented web app that generates observability-themed memes while pro
 
 ## Architecture
 
-```text
-┌─────────────────┐     OTLP/HTTP      ┌──────────────────┐     OTLP/gRPC     ┌──────────────┐     ┌─────────────┐
-│  Meme Generator │ ─────────────────→ │  OTel Collector  │ ────────────────→ │  Refinery    │ ──→ │  Honeycomb  │
-│  (Node/Express) │     :4318          │  (contrib)       │     :4317         │  (sampling)  │     │  Traces     │
-│  :3000          │                    │  :4317/:4318     │                   │  :4317       │     │  Logs       │
-│                 │                    │  :13133 (health) │                   └──────────-───┘     |  Metrics    |
-│  OTel SDK:      │                    │  Metrics ───────-┼────---------------------------------─→ └─────────────┘  
-│  - Traces       │                    │  Processors:     │
-│  - Metrics      │                    │  - batch         │
-│  - Logs         │                    │  - resource      │
-└─────────────────┘                    └──────────────────┘
-```
+![Architecture: app to OTel Collector to Refinery to Honeycomb; metrics skip Refinery](docs/architecture.png)
 
 **Refinery** is Honeycomb's sampling proxy. Traces and logs flow through Refinery before reaching Honeycomb; metrics go directly. Toggle custom sampling rules from the UI and edit rules in YAML.
 
