@@ -4,7 +4,9 @@ A fully-instrumented web app that generates observability-themed memes while pro
 
 ## Architecture
 
-![Architecture: app to OTel Collector to Refinery to Honeycomb; metrics skip Refinery](docs/architecture.png)
+<p align="center">
+  <img src="docs/architecture.png" alt="Architecture: app to OTel Collector to Refinery to Honeycomb; metrics skip Refinery" />
+</p>
 
 **Refinery** is Honeycomb's sampling proxy. Traces and logs flow through Refinery before reaching Honeycomb; metrics go directly. Toggle custom sampling rules from the UI and edit rules in YAML.
 
