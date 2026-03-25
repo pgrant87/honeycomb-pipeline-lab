@@ -2,6 +2,10 @@
 
 A fully-instrumented web app that generates observability-themed memes while producing **real OpenTelemetry traces, metrics, and logs** — all routed through an OTel Collector and Refinery to Honeycomb.
 
+<p align="center">
+  <img src="docs/pipelinelab.png" alt="Honeycomb Pipeline Lab UI" />
+</p>
+
 ## Architecture
 
 <p align="center">
