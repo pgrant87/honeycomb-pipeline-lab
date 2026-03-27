@@ -16,27 +16,34 @@ A fully-instrumented web app that generates observability-themed memes while pro
 
 ## Quick Start
 
-### 1. Copy the environment template
+### 1. Clone the repo and enter the project directory
+
+```bash
+git clone https://github.com/pgrant87/honeycomb-pipeline-lab.git
+cd honeycomb-pipeline-lab
+```
+
+### 2. Copy the environment template
 
 ```bash
 cp .env.example .env
 ```
 
-### 2. Add your Honeycomb API key
+### 3. Add your Honeycomb API key
 
 Edit `.env` and paste your Honeycomb API key.
 
-### 3. Start everything
+### 4. Start everything
 
 ```bash
 docker compose up --build
 ```
 
-### 4. Open the app
+### 5. Open the app
 
 Navigate to **<http://localhost:3000>** and start clicking buttons!
 
-### 5. Check Honeycomb
+### 6. Check Honeycomb
 
 Go to [ui.honeycomb.io](https://ui.honeycomb.io) and look for the `meme-generator` service.
 
