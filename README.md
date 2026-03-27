@@ -14,6 +14,10 @@ A fully-instrumented web app that generates observability-themed memes while pro
 
 **Refinery** is Honeycomb's sampling proxy. Traces and logs flow through Refinery before reaching Honeycomb; metrics go directly. Toggle custom sampling rules from the UI and edit rules in YAML.
 
+## Prerequisites
+
+You need **Docker** with **Docker Compose** (the `docker compose` plugin, included with Docker Desktop and recent Docker Engine installs). All services run in containers; nothing else is required on the host beyond cloning the repo and setting `.env`.
+
 ## Quick Start
 
 ### 1. Clone the repo and enter the project directory
