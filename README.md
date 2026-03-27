@@ -1,4 +1,4 @@
-# Honeycomb Support Pipeline Lab 🎨🔭
+# Honeycomb Pipeline Lab 🎨🔭
 
 A fully-instrumented web app that generates observability-themed memes while producing **real OpenTelemetry traces, metrics, and logs** — all routed through an OTel Collector and Refinery to Honeycomb.
 
@@ -85,8 +85,8 @@ Structured OTel log records at DEBUG, INFO, WARN, and ERROR levels with attribut
 
 A **Honeycomb Refinery** card appears in the UI. Use it to:
 
-- **Toggle** custom sampling rules on/off. When off, Refinery keeps 100% of traces (pass-through).
-- **Edit rules** in YAML when enabled. Example: `DeterministicSampler` with `SampleRate: 10` keeps 1 in 10 traces.
+- **Toggle** custom sampling rules on/off. When off, Refinery keeps 100% of traces (pass-through). When on, the default rules sample **1 in 10** traces (`SampleRate: 10`).
+- **Edit rules** in YAML when enabled. Change `SampleRate` to adjust volume (e.g. `10` → one tenth of traces).
 
 Refinery reloads rules automatically (about every 15 seconds). See [Refinery sampling methods](https://docs.honeycomb.io/manage-data-volume/sample/honeycomb-refinery/sampling-methods/) for rule syntax.
 

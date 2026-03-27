@@ -708,7 +708,7 @@
           <span style="font-size:0.8rem">Custom sampling rules</span>
         </div>
         <div class="refinery-rules" id="refinery-rules">
-          <textarea id="refinery-rules-editor" placeholder="RulesVersion: 2&#10;Samplers:&#10;  __default__:&#10;    DeterministicSampler:&#10;      SampleRate: 1"></textarea>
+          <textarea id="refinery-rules-editor" placeholder="RulesVersion: 2&#10;Samplers:&#10;  __default__:&#10;    DeterministicSampler:&#10;      SampleRate: 10"></textarea>
           <button class="btn refinery-save" onclick="saveRefineryRules()">Save rules</button>
         </div>
       </div>
@@ -878,11 +878,16 @@
     async function toggleRefinery() {
       const el = document.getElementById('refinery-toggle');
       const enabled = !el.classList.contains('on');
+      const editor = document.getElementById('refinery-rules-editor');
+      const payload = { enabled };
+      if (enabled) {
+        payload.rules = editor.value;
+      }
       try {
         const res = await fetch('/api/refinery', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         el.classList.toggle('on', data.enabled);
@@ -890,6 +895,7 @@
         document.getElementById('refinery-status').textContent = data.enabled ? 'Custom rules' : 'Pass-through';
         document.getElementById('refinery-pipeline').style.opacity = data.enabled ? '1' : '0.5';
         addLog('log', `Refinery ${data.enabled ? 'enabled' : 'disabled'}`);
+        await loadRefineryState();
       } catch (e) {
         addLog('error', `Refinery toggle failed: ${e.message}`);
       }

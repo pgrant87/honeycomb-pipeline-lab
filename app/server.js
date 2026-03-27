@@ -21,6 +21,14 @@ Samplers:
       SampleRate: 1
 `;
 
+/** Default editor / “custom rules on” sampling: 1 in 10 traces (SampleRate: 10). */
+const DEFAULT_CUSTOM_SAMPLING_RULES = `RulesVersion: 2
+Samplers:
+  __default__:
+    DeterministicSampler:
+      SampleRate: 10
+`;
+
 // ── OTel API imports ────────────────────────────────────────────────────
 const { trace, SpanStatusCode, metrics } = require('@opentelemetry/api');
 const logsAPI = require('@opentelemetry/api-logs');
@@ -374,11 +382,19 @@ app.get('/api/health', async (_req, res) => {
 // ── Refinery API (toggle + rules) ───────────────────────────────────────
 
 function readRefineryState() {
+  const fresh = { enabled: false, customRules: DEFAULT_CUSTOM_SAMPLING_RULES };
   try {
     const data = fs.readFileSync(REFINERY_STATE_PATH, 'utf8');
-    return JSON.parse(data);
+    const state = JSON.parse(data);
+    if (typeof state.customRules !== 'string' || state.customRules.trim() === '') {
+      state.customRules = DEFAULT_CUSTOM_SAMPLING_RULES;
+    }
+    if (typeof state.enabled !== 'boolean') {
+      state.enabled = false;
+    }
+    return state;
   } catch {
-    return { enabled: false, customRules: KEEP_ALL_RULES };
+    return fresh;
   }
 }
 
@@ -396,10 +412,15 @@ function writeRefineryRules(yaml) {
 app.get('/api/refinery', (_req, res) => {
   const state = readRefineryState();
   let rules;
-  try {
-    rules = fs.readFileSync(REFINERY_RULES_PATH, 'utf8');
-  } catch {
-    rules = state.enabled ? state.customRules : KEEP_ALL_RULES;
+  if (state.enabled) {
+    try {
+      rules = fs.readFileSync(REFINERY_RULES_PATH, 'utf8');
+    } catch {
+      rules = state.customRules;
+    }
+  } else {
+    // Pass-through lives in rules.yaml on disk; editor shows the template that will apply when enabled
+    rules = state.customRules;
   }
   res.json({ enabled: state.enabled, rules });
 });
@@ -408,6 +429,10 @@ app.get('/api/refinery', (_req, res) => {
 app.post('/api/refinery', (req, res) => {
   const state = readRefineryState();
   const enabled = req.body?.enabled ?? !state.enabled;
+  const rulesFromBody = req.body?.rules;
+  if (enabled && typeof rulesFromBody === 'string' && rulesFromBody.trim() !== '') {
+    state.customRules = rulesFromBody;
+  }
   state.enabled = enabled;
   writeRefineryState(state);
   writeRefineryRules(enabled ? state.customRules : KEEP_ALL_RULES);
