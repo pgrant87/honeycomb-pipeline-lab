@@ -22,4 +22,7 @@ Logger:
   Level: warn
 
 OTelMetrics:
-  Enabled: false
+  Enabled: true
+  # Uses REFINERY_HONEYCOMB_API_KEY / REFINERY_OTEL_METRICS_API_KEY from the environment when APIKey is omitted.
+  Dataset: refinery-metrics
+  ReportingInterval: 30s

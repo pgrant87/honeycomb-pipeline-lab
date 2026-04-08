@@ -12,7 +12,7 @@ A fully-instrumented web app that generates observability-themed memes while pro
   <img src="docs/architecture.png" alt="Architecture: app to OTel Collector to Refinery to Honeycomb; metrics skip Refinery" />
 </p>
 
-**Refinery** is Honeycomb's sampling proxy. Traces and logs flow through Refinery before reaching Honeycomb; metrics go directly. Toggle custom sampling rules from the UI and edit rules in YAML.
+**Refinery** is Honeycomb's sampling proxy. Traces and logs flow through Refinery before reaching Honeycomb; **app** metrics go directly to Honeycomb via the Collector. Refinery also exports **its own** OpenTelemetry metrics (queue sizes, drop reasons, sampling internals) to the `refinery-metrics` dataset using the same API key. Toggle custom sampling rules from the UI and edit rules in YAML.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ Navigate to **<http://localhost:3000>** and start clicking buttons!
 
 ### 6. Check Honeycomb
 
-Go to [ui.honeycomb.io](https://ui.honeycomb.io) and look for the `meme-generator` service.
+Go to [ui.honeycomb.io](https://ui.honeycomb.io) and look for the `meme-generator` service. For Refinery’s health metrics (for example `incoming_router_batch` / `libhoney_upstream_queue_length`), open the **`refinery-metrics`** dataset.
 
 ## What Gets Instrumented
 
