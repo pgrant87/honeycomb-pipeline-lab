@@ -2,15 +2,11 @@
 
 A fully-instrumented web app that generates observability-themed memes while producing **real OpenTelemetry traces, metrics, and logs** — all routed through an OTel Collector and Refinery to Honeycomb.
 
-<p align="center">
-  <img src="docs/pipelinelab.png" alt="Honeycomb Pipeline Lab UI" />
-</p>
+![Honeycomb Pipeline Lab UI](docs/pipelinelab.png)
 
 ## Architecture
 
-<p align="center">
-  <img src="docs/architecture.png" alt="Architecture: app to OTel Collector to Refinery to Honeycomb; metrics skip Refinery" />
-</p>
+![Architecture: app to OTel Collector to Refinery to Honeycomb; metrics skip Refinery](docs/architecture.png)
 
 **Refinery** is Honeycomb's sampling proxy. Traces and logs flow through Refinery before reaching Honeycomb; **app** metrics go directly to Honeycomb via the Collector. Refinery also exports **its own** OpenTelemetry metrics (queue sizes, drop reasons, sampling internals) to the `refinery-metrics` dataset using the same API key. Toggle custom sampling rules from the UI and edit rules in YAML.
 
