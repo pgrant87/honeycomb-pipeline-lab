@@ -1,4 +1,4 @@
 {
-  "enabled": true,
+  "enabled": false,
   "customRules": "RulesVersion: 2\nSamplers:\n  __default__:\n    DeterministicSampler:\n      SampleRate: 10"
 }
