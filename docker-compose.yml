@@ -1,7 +1,7 @@
 services:
   # ── OTel Collector ─────────────────────────────────────────
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.100.0
+    image: otel/opentelemetry-collector-contrib:0.163.1
     container_name: otel-collector
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
@@ -18,7 +18,7 @@ services:
 
   # ── Honeycomb Refinery (sampling proxy) ────────────────────
   refinery:
-    image: honeycombio/refinery:3.1.1
+    image: honeycombio/refinery:3.4.2
     container_name: refinery
     command: ["-c", "/etc/refinery/refinery.yaml", "-r", "/etc/refinery/rules.yaml"]
     volumes:
