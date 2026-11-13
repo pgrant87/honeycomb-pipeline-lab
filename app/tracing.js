@@ -14,6 +14,12 @@ const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-proto'
 // Metrics exporter
 const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-proto');
 const { PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
+// Views must come from the sdk-metrics copy NodeSDK loads. A second copy makes
+// aggregation class checks fail and the exponential-histogram view is ignored.
+const path = require('path');
+const sdkNodeDir = path.dirname(require.resolve('@opentelemetry/sdk-node/package.json'));
+const sdkMetrics = require(require.resolve('@opentelemetry/sdk-metrics', { paths: [sdkNodeDir] }));
+const { View, InstrumentType, ExponentialHistogramAggregation } = sdkMetrics;
 
 // Logs exporter
 const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-proto');
@@ -75,7 +81,18 @@ const metricExporter = {
 
 const metricReader = new PeriodicExportingMetricReader({
   exporter: metricExporter,
-  exportIntervalMillis: 60_000, // flush every 60s to reduce export traffic
+  // Cumulative temporality (OTLP default). Honeycomb applies INCREASE/RATE to
+  // monotonic sums and LAST to gauges. 15s keeps a lab chart moving.
+  exportIntervalMillis: 15_000,
+});
+
+// Latency histograms use exponential buckets so Honeycomb can store them as
+// native histograms and merge percentiles across time and attributes.
+// memes.caption.length keeps the default explicit buckets (bounded, known range).
+const exponentialHistogramView = (instrumentName) => new View({
+  instrumentName,
+  instrumentType: InstrumentType.HISTOGRAM,
+  aggregation: new ExponentialHistogramAggregation(),
 });
 
 // ── Logs ────────────────────────────────────────────────────────────────
@@ -102,6 +119,10 @@ const sdk = new NodeSDK({
   resource,
   traceExporter,
   metricReader,
+  views: [
+    exponentialHistogramView('memes.generation.duration'),
+    exponentialHistogramView('endpoint.duration'),
+  ],
   instrumentations: [
     new HttpInstrumentation({
       ignoreIncomingPaths: ['/api/health'],

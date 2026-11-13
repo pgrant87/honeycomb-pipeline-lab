@@ -728,7 +728,7 @@
       <span>🍯 <a href="https://ui.honeycomb.io" target="_blank">Honeycomb</a></span>
     </div>
     <div style="margin-top:0.4rem">
-      Instrumented with OpenTelemetry · Traces, Metrics & Logs
+      Instrumented with OpenTelemetry · Traces, logs, and time series metrics (gauges, sums, histograms)
     </div>
   </div>
 
@@ -798,10 +798,15 @@
         document.getElementById('rating-bar').style.visibility = 'visible';
 
         stats.memes++;
-        stats.metrics += 2; // counter + histogram
+        const captionChars = (meme.topText + meme.bottomText).length;
+        stats.metrics += 6;
         addLog('trace', `Span ended: generate-meme → ${meme.template.name}`);
-        addLog('metric', `memes.generated +1 (template=${meme.template.id})`);
-        addLog('metric', `memes.generation.duration ${data.durationMs}ms`);
+        addLog('metric', `memes.generated +1 (counter, template=${meme.template.id})`);
+        addLog('metric', `memes.generation.duration ${data.durationMs}ms (exponential histogram)`);
+        addLog('metric', `memes.caption.length ${captionChars} (explicit histogram)`);
+        addLog('metric', `meme.quality.score ${data.qualityScore} (gauge, template=${meme.template.id})`);
+        addLog('metric', `endpoint.duration ${data.durationMs}ms (exponential histogram, route=/api/generate)`);
+        addLog('metric', 'memes.inflight +1/−1 (up/down counter)');
         addLog('log', `Meme ${meme.id.slice(0, 8)}… generated successfully`);
 
       } catch (err) {
@@ -816,9 +821,10 @@
 
       stats.traceRoots += 1;
       stats.spans += 1;
-      stats.metrics++;
+      stats.metrics += 2;
       addLog('trace', `Span: rate-meme (rating=${rating})`);
-      addLog('metric', `ui.button.clicks +1 (type=rate_${rating})`);
+      addLog('metric', `ui.button.clicks +1 (counter, type=rate_${rating})`);
+      addLog('metric', 'endpoint.duration recorded (exponential histogram, route=/api/rate)');
       addLog('log', `Meme ${currentMemeId.slice(0, 8)}… rated ${rating}`);
 
       await fetch('/api/rate', {
@@ -833,17 +839,22 @@
       stats.traceRoots += 1;
       stats.spans += 1;
       addLog('trace', 'Span started: chaos-endpoint ⚠️');
+      const started = performance.now();
 
       try {
         const res = await fetch('/api/chaos', { method: 'POST' });
         const data = await res.json();
+        const elapsed = Math.round(performance.now() - started);
+        stats.metrics += 2;
+        addLog('metric', `endpoint.duration ${elapsed}ms (exponential histogram, route=/api/chaos)`);
 
         if (!res.ok) {
           stats.errors++;
           addLog('error', `Chaos triggered: ${data.chaosType} (${res.status})`);
+          addLog('metric', `errors.total +1 (counter, type=${data.chaosType})`);
         } else {
           addLog('log', `Chaos survived! Type: ${data.chaosType}`);
-          stats.metrics++;
+          addLog('metric', 'ui.button.clicks +1 (counter, type=chaos_survived)');
         }
       } catch (err) {
         stats.errors++;
@@ -854,7 +865,7 @@
     // ── Heartbeat ─────────────────────────────────────────────
     async function sendHeartbeat() {
       stats.metrics++;
-      addLog('metric', 'users.active +1');
+      addLog('metric', 'users.active session +1 for 60s (gauge)');
       addLog('log', 'Heartbeat sent');
 
       await fetch('/api/heartbeat', { method: 'POST' });
@@ -975,8 +986,8 @@
     // ── Init ──────────────────────────────────────────────────
     addLog('log', 'Honeycomb Pipeline Lab initialised');
     addLog('trace', 'SDK bootstrapped: traces → collector:4318');
-    addLog('metric', 'Metric reader: flush interval 60s');
-    addLog('log', 'Pipeline: App → OTel SDK → Collector → Refinery → Honeycomb');
+    addLog('metric', 'Export every 15s: gauges (users.active, heap, event loop), counters, histograms');
+    addLog('log', 'Pipeline: App → OTel SDK → Collector → Refinery → Honeycomb. Metrics skip Refinery.');
     // Match stat cards to the boot trace / metric lines (addLog only counts type "log" toward stats.logs)
     stats.traceRoots += 1;
     stats.metrics += 1;
