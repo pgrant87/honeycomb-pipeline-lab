@@ -6,6 +6,34 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+  # Host gauges and sums for Honeycomb Correlations (CPU, memory, network).
+  # Scraped from the collector container. Utilization metrics are gauges;
+  # cpu.time and network.io are monotonic cumulative sums.
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: false
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      network:
+        metrics:
+          system.network.connections:
+            enabled: false
+          system.network.dropped:
+            enabled: false
+          system.network.errors:
+            enabled: false
+          system.network.packets:
+            enabled: false
+      load: {}
+
 processors:
   batch:
     send_batch_size: 1000
@@ -17,6 +45,19 @@ processors:
       - key: deployment.environment
         value: "demo"
         action: upsert
+
+  resource/host:
+    attributes:
+      - key: service.name
+        value: pipeline-lab-host
+        action: upsert
+      - key: deployment.environment
+        value: demo
+        action: upsert
+
+  batch/host:
+    send_batch_size: 1000
+    timeout: 5s
 
 exporters:
   # ── Refinery (traces + logs) — sampling proxy before Honeycomb ─
@@ -33,12 +74,13 @@ exporters:
     headers:
       "x-honeycomb-team": "${env:HONEYCOMB_API_KEY}"
 
-  # ── Honeycomb metrics (requires explicit dataset to avoid Unknown_dataset) ─
+  # ── Honeycomb metrics ─
+  # Current Honeycomb routes OTLP metrics to the managed Metrics dataset.
+  # The legacy x-honeycomb-dataset header is omitted on purpose.
   otlp/honeycomb-metrics:
     endpoint: "api.honeycomb.io:443"
     headers:
       "x-honeycomb-team": "${env:HONEYCOMB_API_KEY}"
-      "x-honeycomb-dataset": "${env:HONEYCOMB_METRICS_DATASET}"
 
   # ── Debug exporter (stdout — helpful for verifying locally) ─
   debug:
@@ -62,6 +104,11 @@ service:
     metrics:
       receivers:  [otlp]
       processors: [resource, batch]
+      exporters:  [otlp/honeycomb-metrics, debug]
+
+    metrics/host:
+      receivers:  [hostmetrics]
+      processors: [resource/host, batch/host]
       exporters:  [otlp/honeycomb-metrics, debug]
 
     logs:

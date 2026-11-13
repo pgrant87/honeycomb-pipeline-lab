@@ -49,14 +49,81 @@ const memeCounter = meter.createCounter('memes.generated', {
   unit: '{meme}',
 });
 
+// Exponential histogram via a View in tracing.js. Honeycomb stores this as a
+// native histogram so P95/P99 stay accurate when you group or zoom.
 const memeLatencyHistogram = meter.createHistogram('memes.generation.duration', {
   description: 'Time to generate a meme in milliseconds',
   unit: 'ms',
 });
 
-const activeUsers = meter.createUpDownCounter('users.active', {
-  description: 'Currently active users (simulated)',
+// Explicit buckets: caption length sits in a known, narrow range.
+const captionLengthHistogram = meter.createHistogram('memes.caption.length', {
+  description: 'Combined top and bottom caption length',
+  unit: '{character}',
+  advice: {
+    explicitBucketBoundaries: [20, 40, 60, 80, 100, 140, 180],
+  },
+});
+
+// All three mutating routes, including chaos timeouts, so the long tail is queryable.
+const endpointDurationHistogram = meter.createHistogram('endpoint.duration', {
+  description: 'HTTP handler latency in milliseconds',
+  unit: 'ms',
+});
+
+// Non-monotonic sum. Honeycomb's default temporal aggregation is LAST().
+const memesInflight = meter.createUpDownCounter('memes.inflight', {
+  description: 'Meme generations currently in progress',
+  unit: '{meme}',
+});
+
+// Gauge: absolute session count, observed on each export. Heartbeats last 60s.
+const SESSION_TTL_MS = 60_000;
+const activeSessionExpiries = [];
+
+function noteActiveUser() {
+  activeSessionExpiries.push(Date.now() + SESSION_TTL_MS);
+}
+
+function currentActiveUsers() {
+  const now = Date.now();
+  while (activeSessionExpiries.length > 0 && activeSessionExpiries[0] <= now) {
+    activeSessionExpiries.shift();
+  }
+  return activeSessionExpiries.length;
+}
+
+const activeUsers = meter.createObservableGauge('users.active', {
+  description: 'Simulated active users. Each heartbeat counts for 60 seconds.',
   unit: '{user}',
+});
+activeUsers.addCallback((result) => {
+  result.observe(currentActiveUsers());
+});
+
+// Sync gauge: last quality score seen for a template. Query with LAST().
+const qualityScoreGauge = meter.createGauge('meme.quality.score', {
+  description: 'Latest meme quality score for a template (1 pass, lower when a warning fires)',
+  unit: '1',
+});
+
+const heapUsedGauge = meter.createObservableGauge('process.memory.heap.used', {
+  description: 'Node.js heap used at each metrics export',
+  unit: 'By',
+});
+heapUsedGauge.addCallback((result) => {
+  result.observe(process.memoryUsage().heapUsed);
+});
+
+let lastEventLoopUtilization = performance.eventLoopUtilization();
+const eventLoopGauge = meter.createObservableGauge('nodejs.eventloop.utilization', {
+  description: 'Event loop utilization since the previous metrics export, from 0 to 1',
+  unit: '1',
+});
+eventLoopGauge.addCallback((result) => {
+  const delta = performance.eventLoopUtilization(lastEventLoopUtilization);
+  lastEventLoopUtilization = performance.eventLoopUtilization();
+  result.observe(delta.utilization);
 });
 
 const buttonClickCounter = meter.createCounter('ui.button.clicks', {
@@ -118,6 +185,13 @@ function simulateWork(minMs, maxMs) {
   return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
+function recordEndpointDuration(route, outcome, durationMs) {
+  endpointDurationHistogram.record(durationMs, {
+    'http.route': route,
+    outcome,
+  });
+}
+
 function emitLog(severityNumber, severityText, body, attributes = {}) {
   logger.emit({
     severityNumber,
@@ -164,14 +238,17 @@ app.post('/api/generate', async (req, res) => {
 
   return tracer.startActiveSpan('generate-meme', async (parentSpan) => {
     const memeId = crypto.randomUUID();
+    const memeMode = mode || 'random';
+    const inflightAttrs = { 'meme.mode': memeMode };
     parentSpan.setAttribute('meme.id', memeId);
     parentSpan.setAttribute('meme.template', templateId || 'random');
-    parentSpan.setAttribute('meme.mode', mode || 'random');
+    parentSpan.setAttribute('meme.mode', memeMode);
+    memesInflight.add(1, inflightAttrs);
 
     emitLog(SeverityNumber.INFO, 'INFO', `Meme generation started`, {
       'meme.id': memeId,
       'meme.template': templateId || 'random',
-      'meme.mode': mode || 'random',
+      'meme.mode': memeMode,
     });
 
     try {
@@ -199,6 +276,10 @@ app.post('/api/generate', async (req, res) => {
           'meme.id': memeId,
           'caption.top': topText,
           'caption.bottom': bottomText,
+        });
+
+        captionLengthHistogram.record(topText.length + bottomText.length, {
+          'template.id': template.id,
         });
 
         span.end();
@@ -233,11 +314,13 @@ app.post('/api/generate', async (req, res) => {
       });
 
       // ── Child span: quality check (sometimes fails!) ───────────────
+      let qualityScore = 1;
       await tracer.startActiveSpan('quality-check', async (span) => {
         await simulateWork(10, 40);
 
         // 5% chance of "low quality" warning
         if (Math.random() < 0.05) {
+          qualityScore = 0.4;
           span.addEvent('quality-warning', { reason: 'font-overlap-detected' });
           emitLog(SeverityNumber.WARN, 'WARN', 'Meme quality check: font overlap', {
             'meme.id': memeId,
@@ -245,7 +328,9 @@ app.post('/api/generate', async (req, res) => {
           });
         }
 
-        span.setAttribute('quality.passed', true);
+        qualityScoreGauge.record(qualityScore, { 'template.id': template.id });
+        span.setAttribute('quality.score', qualityScore);
+        span.setAttribute('quality.passed', qualityScore === 1);
         span.end();
       });
 
@@ -253,11 +338,12 @@ app.post('/api/generate', async (req, res) => {
       const durationMs = performance.now() - start;
       memeCounter.add(1, {
         'template.id': template.id,
-        'meme.mode': mode || 'random',
+        'meme.mode': memeMode,
       });
       memeLatencyHistogram.record(durationMs, {
         'template.id': template.id,
       });
+      recordEndpointDuration('/api/generate', 'success', durationMs);
       buttonClickCounter.add(1, { 'button.type': 'generate' });
 
       parentSpan.setAttribute('meme.duration_ms', durationMs);
@@ -270,12 +356,17 @@ app.post('/api/generate', async (req, res) => {
       });
 
       parentSpan.end();
-      return res.json({ meme: renderedMeme, durationMs: Math.round(durationMs) });
+      return res.json({
+        meme: renderedMeme,
+        durationMs: Math.round(durationMs),
+        qualityScore,
+      });
 
     } catch (err) {
       parentSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
       parentSpan.recordException(err);
       errorCounter.add(1, { 'error.type': 'generation_failed' });
+      recordEndpointDuration('/api/generate', 'error', performance.now() - start);
 
       emitLog(SeverityNumber.ERROR, 'ERROR', `Meme generation failed: ${err.message}`, {
         'meme.id': memeId,
@@ -285,6 +376,8 @@ app.post('/api/generate', async (req, res) => {
 
       parentSpan.end();
       return res.status(500).json({ error: 'Meme generation failed' });
+    } finally {
+      memesInflight.add(-1, inflightAttrs);
     }
   });
 });
@@ -293,6 +386,7 @@ app.post('/api/generate', async (req, res) => {
 app.post('/api/rate', async (req, res) => {
   const { memeId, rating } = req.body;
 
+  const start = performance.now();
   return tracer.startActiveSpan('rate-meme', async (span) => {
     span.setAttribute('meme.id', memeId);
     span.setAttribute('meme.rating', rating);
@@ -305,6 +399,7 @@ app.post('/api/rate', async (req, res) => {
     });
 
     await simulateWork(5, 20);
+    recordEndpointDuration('/api/rate', 'success', performance.now() - start);
     span.end();
     res.json({ success: true, memeId, rating });
   });
@@ -312,6 +407,7 @@ app.post('/api/rate', async (req, res) => {
 
 // POST /api/chaos — trigger a controlled error for demo purposes
 app.post('/api/chaos', async (_req, res) => {
+  const start = performance.now();
   return tracer.startActiveSpan('chaos-endpoint', async (span) => {
     span.setAttribute('chaos.enabled', true);
 
@@ -325,6 +421,7 @@ app.post('/api/chaos', async (_req, res) => {
       });
       errorCounter.add(1, { 'error.type': 'timeout' });
       await simulateWork(2000, 3000);
+      recordEndpointDuration('/api/chaos', 'timeout', performance.now() - start);
       span.setStatus({ code: SpanStatusCode.ERROR, message: 'Simulated timeout' });
       span.end();
       return res.status(504).json({ error: 'Simulated timeout', chaosType: 'timeout' });
@@ -338,6 +435,7 @@ app.post('/api/chaos', async (_req, res) => {
         'chaos.type': 'internal_error',
       });
       errorCounter.add(1, { 'error.type': 'internal_error' });
+      recordEndpointDuration('/api/chaos', 'error', performance.now() - start);
       span.end();
       return res.status(500).json({ error: 'Simulated 500', chaosType: 'internal_error' });
 
@@ -349,6 +447,7 @@ app.post('/api/chaos', async (_req, res) => {
         'chaos.roll': roll,
       });
       buttonClickCounter.add(1, { 'button.type': 'chaos_survived' });
+      recordEndpointDuration('/api/chaos', 'near_miss', performance.now() - start);
       span.setStatus({ code: SpanStatusCode.OK });
       span.end();
       return res.json({ success: true, chaosType: 'near_miss', message: 'You survived chaos!' });
@@ -457,9 +556,11 @@ app.put('/api/refinery/rules', (req, res) => {
 
 // POST /api/heartbeat — simple liveness with a log + metric
 app.post('/api/heartbeat', (_req, res) => {
-  activeUsers.add(1, { 'source': 'heartbeat' });
+  noteActiveUser();
 
-  emitLog(SeverityNumber.DEBUG, 'DEBUG', 'Heartbeat received');
+  emitLog(SeverityNumber.DEBUG, 'DEBUG', 'Heartbeat received', {
+    'users.active': currentActiveUsers(),
+  });
 
   res.json({ status: 'alive', timestamp: new Date().toISOString() });
 });
@@ -474,6 +575,7 @@ app.listen(PORT, '0.0.0.0', () => {
       'server.port': String(PORT),
     });
     appStartupCounter.add(1, { 'boot.phase': 'listen' });
+    span.end();
   });
   flushTelemetry().catch((err) => console.error('OpenTelemetry flush after startup failed:', err));
 });

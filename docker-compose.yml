@@ -8,7 +8,6 @@ services:
       - ./collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
     environment:
       - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
-      - HONEYCOMB_METRICS_DATASET=${HONEYCOMB_METRICS_DATASET:-meme-generator-metrics}
     ports:
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
